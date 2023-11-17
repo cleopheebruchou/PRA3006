@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tree Visualisation AOP-Wiki data</title>
+
+  <!-- Import D3.js library -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+  <div id="chart"></div>
+
+  <script>
+    
+    const filterString = 'lead'
+
+    const sparqlQuery = `
+    SELECT ?AO ?AOname ?AOP (CONCAT('"', GROUP_CONCAT(?ChemicalName; SEPARATOR='","'), '"') AS ?ChemicalNames) ?KEName 
+    WHERE {
+    {
+    SELECT ?AO ?AOname ?AOP (CONCAT('"', GROUP_CONCAT(?ChemicalName; SEPARATOR='","'), '"') AS ?ChemicalNames)
+    WHERE {
+      ?AO a aopo:KeyEvent ;
+        dc:identifier ?AOLookup ;
+        dc:title ?AOname .
+      ?AOP a aopo:AdverseOutcomePathway ;
+        aopo:has_adverse_outcome ?AOLookup ;
+        nci:C54571 ?Stressor .
+      ?Stressor dc:title ?StressorName.
+      OPTIONAL {
+        ?Stressor aopo:has_chemical_entity ?Chemical.
+        ?Chemical dc:title ?ChemicalName.
+      }
+      FILTER regex(?ChemicalName, "${filterString}", "i")
+    }
+    GROUP BY ?AO ?AOname ?AOP
+    }
+    ?KE a aopo:KeyEvent ;
+    dc:title ?KEName ;
+    mmo:0000000 ?Measurement ;
+    dcterms:isPartOf ?AOP .
+    }
+        ORDER BY DESC(?AO)
+    `;
+
+    // SPARQL endpoint URL
+    const sparqlEndpoint = 'http://aopwiki.rdf.bigcat-bioinformatics.org/sparql';
+
+    // Fetch data from the SPARQL endpoint
+    fetch(`${sparqlEndpoint}?query=${encodeURIComponent(sparqlQuery)}&format=json`, {    //&format=json was added later???
+      headers: {
+        'Accept': 'application/json',
+      }
+    })
+    
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);      
+      // Process the SPARQL query results and create the tree
+      const rootNode = { name: filterString, children: [] };
+    
+      
+    data.results.bindings.forEach(binding => {
+        const ao = {
+            name: binding.AOname.value,
+            children: [],
+        };
+
+        const keName = {
+            name: binding.KEName.value,
+        };
+
+        ao.children.push(keName);
+        rootNode.children.push(ao);
+    });
+
+
+      // Create a single root node for D3.js hierarchy
+      const root = d3.hierarchy(rootNode);
+
+      // Compute the tree layout
+      const width = 600;
+      const dx = 10;
+      const dy = width / (root.height + 1);
+
+      const tree = d3.tree().nodeSize([dx, dy]);
+
+      root.sort((a, b) => d3.ascending(a.data.name, b.data.name));
+      tree(root);
+
+      let x0 = Infinity;
+      let x1 = -x0;
+      root.each(d => {
+        if (d.x > x1) x1 = d.x;
+        if (d.x < x0) x0 = d.x;
+      });
+
+      const height = x1 - x0 + dx * 2;
+
+      const svg = d3.create("svg")
+          .attr("width", width)
+          .attr("height", height)
+          .attr("viewBox", [-dy / 3, x0 - dx, width, height])
+          .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
+
+      const link = svg.append("g")
+          .attr("fill", "none")
+          .attr("stroke", "#555")
+          .attr("stroke-opacity", 0.4)
+          .attr("stroke-width", 1.5)
+        .selectAll()
+          .data(root.links())
+          .join("path")
+            .attr("d", d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x));
+
+      const node = svg.append("g")
+          .attr("stroke-linejoin", "round")
+          .attr("stroke-width", 3)
+        .selectAll()
+        .data(root.descendants())
+        .join("g")
+          .attr("transform", d => `translate(${d.y},${d.x})`);
+
+      node.append("circle")
+          .attr("fill", d => d.children ? "#555" : "#999")
+          .attr("r", 2.5);
+
+      node.append("text")
+          .attr("dy", "0.31em")
+          .attr("x", d => d.children ? -6 : 6)
+          .attr("text-anchor", d => d.children ? "end" : "start")
+          .text(d => d.data.name)
+        .clone(true).lower()
+          .attr("stroke", "white");
+
+      document.getElementById("chart").appendChild(svg.node());
+    })
+    .catch(error => console.error('Error:', error));
+    
+
+  </script>
+</body>
+
+</html>
