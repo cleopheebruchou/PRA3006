@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+DOCTYPE html>
 
 <html lang="en">
 
@@ -16,42 +16,43 @@
 
   <script>
     
-    const filterString = 'lead'
-
-    const sparqlQuery = `
-    SELECT ?AO ?AOname ?AOP (CONCAT('"', GROUP_CONCAT(?ChemicalName; SEPARATOR='","'), '"') AS ?ChemicalNames) ?KEName 
-    WHERE {
-    {
-    SELECT ?AO ?AOname ?AOP (CONCAT('"', GROUP_CONCAT(?ChemicalName; SEPARATOR='","'), '"') AS ?ChemicalNames)
-    WHERE {
-      ?AO a aopo:KeyEvent ;
-        dc:identifier ?AOLookup ;
-        dc:title ?AOname .
-      ?AOP a aopo:AdverseOutcomePathway ;
-        aopo:has_adverse_outcome ?AOLookup ;
-        nci:C54571 ?Stressor .
-      ?Stressor dc:title ?StressorName.
-      OPTIONAL {
-        ?Stressor aopo:has_chemical_entity ?Chemical.
-        ?Chemical dc:title ?ChemicalName.
-      }
-      FILTER regex(?ChemicalName, "${filterString}", "i")
-    }
-    GROUP BY ?AO ?AOname ?AOP
-    }
-    ?KE a aopo:KeyEvent ;
-    dc:title ?KEName ;
-    mmo:0000000 ?Measurement ;
-    dcterms:isPartOf ?AOP .
-    }
-        ORDER BY DESC(?AO)
-    `;
+    //var filterString = 'lead'
 
     // SPARQL endpoint URL
-    const sparqlEndpoint = 'http://aopwiki.rdf.bigcat-bioinformatics.org/sparql';
+    var sparqlEndpoint = 'http://aopwiki.rdf.bigcat-bioinformatics.org/sparql';
+
+    var sparqlQuery = `
+          SELECT ?AO ?AOname ?AOP ?KEName ?Measurement
+      WHERE {
+      {
+      SELECT ?AO ?AOname ?AOP
+      WHERE {
+      ?AO a aopo:KeyEvent ;
+      dc:identifier ?AOLookup ;
+      dc:title ?AOname .
+      ?AOP a aopo:AdverseOutcomePathway ;
+      aopo:has_adverse_outcome ?AOLookup ;
+      nci:C54571 ?Stressor .
+      ?Stressor dc:title ?StressorName.
+      OPTIONAL {
+      ?Stressor aopo:has_chemical_entity ?Chemical.
+      ?Chemical dc:title ?ChemicalName.
+      }
+      FILTER regex(?ChemicalName, "lead", "i")
+      }
+      GROUP BY ?AO ?AOname ?AOP
+      }
+      ?KE a aopo:KeyEvent ;
+      dc:title ?KEName ;
+      mmo:0000000 ?Measurement ;
+      dcterms:isPartOf ?AOP .
+      }
+      ORDER BY DESC(?AO)
+    `;
+
 
     // Fetch data from the SPARQL endpoint
-    fetch(`${sparqlEndpoint}?query=${encodeURIComponent(sparqlQuery)}&format=json`, {    //&format=json was added later???
+    fetch(`${sparqlEndpoint}?query=${encodeURIComponent(sparqlQuery)}&format=json`, {    //&format=json was added later / sparqlQuery replaced sparqlEndpoint
       headers: {
         'Accept': 'application/json',
       }
@@ -61,16 +62,16 @@
     .then(data => {
         console.log(data);      
       // Process the SPARQL query results and create the tree
-      const rootNode = { name: filterString, children: [] };
+      const rootNode = { name: filterString, children: [] };  //change to led!!!!
     
       
     data.results.bindings.forEach(binding => {
-        const ao = {
+        var ao = {
             name: binding.AOname.value,
             children: [],
         };
 
-        const keName = {
+        var keName = {
             name: binding.KEName.value,
         };
 
