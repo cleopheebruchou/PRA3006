@@ -164,7 +164,7 @@
           const root = d3.hierarchy(rootNode);
 
           // custom color gradient from blue to green for each generation of the tree (based on depth)
-          const colorInterpolator = d3.interpolateRgb("red", "pink");
+          const colorInterpolator = d3.interpolateRgb("blue", "green");
           const colorScale = d3.scaleSequential((d) => colorInterpolator(d / root.height));
 
           // compute the tree layout
