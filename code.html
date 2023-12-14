@@ -8,6 +8,19 @@
 
   <!-- import D3.js library -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <!-- Add CSS styling for the body -->
+  <style>
+    body {
+      margin: 20px;
+    }
+
+    #chart {
+      max-width: 100%;
+      overflow: auto;
+    }
+  </style>
+
 </head>
 
 <body style="background-color: #F5F5F5;">
@@ -22,7 +35,7 @@
 
   <!-- creating the chemical button -->
   <label for="chemicalInput">Enter Chemical:</label>
-  <input type="text" id="chemicalInput" placeholder="e.g., Norfloxacin">
+  <input type="text" id="chemicalInput" placeholder="e.g., Lead">
   <button onclick="executeSPARQLQuery()">Run SPARQL Query</button>
 
   <div id="chart"></div>
@@ -151,11 +164,11 @@
           const root = d3.hierarchy(rootNode);
 
           // custom color gradient from blue to green for each generation of the tree (based on depth)
-          const colorInterpolator = d3.interpolateRgb("blue", "green");
+          const colorInterpolator = d3.interpolateRgb("red", "pink");
           const colorScale = d3.scaleSequential((d) => colorInterpolator(d / root.height));
 
           // compute the tree layout
-          const width = 1500;
+          const width = 1600;
           const dx = 30;
           const dy = width / (root.height + 1);
 
@@ -171,23 +184,23 @@
             if (d.x < x0) x0 = d.x;
           });
 
-          const height = 1000;
+          const height = x1 - x0 + 200;
 
           // attributes of the tree
           const svg = d3.create("svg")
-            .attr("width", width)
+            .attr("width", "100%")
             .attr("height", height)
-            .attr("viewBox", [-200, -300, width, height])
-            .attr("style", "max-width: 100%; height: auto; font: 16px sans-serif;");  //adjusting fonts and font sizes
+            .attr("viewBox", [-200, x0 - 50, width, height])
+            .attr("style", "max-width: 100%; height: auto; font: 17px sans-serif;");  //adjusting fonts and font sizes
 
           // attributes of the dynamic title 
           const title = svg.append("text")
             .attr("x", width / 3)
-            .attr("y", -240) // Adjust the y-coordinate based on your preference
+            .attr("y", x0)    // anchor to the top of the tree
             .attr("text-anchor", "middle")
             .style("font-size", "30px") // Adjust font size
-            .style("fill", colorScale(0)) // Use the color of the root node
-            .text(`Adverse outcomes and key events related to ${chemical.toUpperCase()}`); // Set a dynamic title here
+            .style("fill", colorScale(0)) // color of the root node
+            .text(`Adverse outcomes and key events related to ${chemical.toUpperCase()}`); 
 
           // adjusting enough space for the title
           const treeContainer = svg.append("g")
